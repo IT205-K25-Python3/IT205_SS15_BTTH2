@@ -1,119 +1,97 @@
-user_account_balance = 10000000
-atm_vault_balance = 50000000
+USER_ACCOUNT_BALANCE = 10000000
+ATM_VAULT_BALANCE = 50000000
+WITHDRAWAL_FEE = 1100
+MULTIPLE_UNIT = 50000
 
 def display_balances():
-
-    print("--- SỐ DƯ TÀI KHOẢN ---")
-    print(f"Tài khoản của bạn: {user_account_balance:,} VND")
-    print(f"(Debug) Tiền mặt trong ATM: {atm_vault_balance:,} VND")
+    """Hiển thị số dư hiện tại của tài khoản và ATM."""
+    print("\n--- SỐ DƯ TÀI KHOẢN ---")
+    print(f"Tài khoản của bạn: {USER_ACCOUNT_BALANCE:,} VND")
+    print(f"(Debug) Tiền mặt trong ATM: {ATM_VAULT_BALANCE:,} VND")
 
 def deposit_money(amount):
-
+    """
+    Thực hiện nạp tiền vào tài khoản.
+    :param amount: Số tiền cần nạp (int)
+    """
+    global USER_ACCOUNT_BALANCE, ATM_VAULT_BALANCE
+    
     if amount <= 0:
-        print("Số tiền không hợp lệ.")
-        return False
-    
-    global user_account_balance, atm_vault_balance
-    
-    user_account_balance += amount
-    atm_vault_balance += amount
-    
-    print("Giao dịch thành công!")
-    print(f"Số dư tài khoản hiện tại: {user_account_balance:,} VND.")
-    return True
+        print("Lỗi: Số tiền nạp phải lớn hơn 0.")
+        return
+        
+    USER_ACCOUNT_BALANCE += amount
+    ATM_VAULT_BALANCE += amount
+    print(f"Nạp tiền thành công! Số dư mới: {USER_ACCOUNT_BALANCE:,} VND.")
 
-def check_withdrawal_rules(amount):
-
+def validate_withdrawal(amount):
+    """
+    Kiểm tra các quy tắc rút tiền.
+    :param amount: Số tiền khách hàng muốn rút.
+    :return: Trạng thái (string) và thông báo lỗi (nếu có).
+    """
     if amount <= 0:
-        return "INVALID_AMOUNT"
+        return False, "Số tiền phải lớn hơn 0."
+    if amount % MULTIPLE_UNIT != 0:
+        return False, f"Số tiền rút phải là bội số của {MULTIPLE_UNIT:,} VND."
+    if (amount + WITHDRAWAL_FEE) > USER_ACCOUNT_BALANCE:
+        return False, "Số dư tài khoản không đủ (bao gồm phí giao dịch)."
+    if amount > ATM_VAULT_BALANCE:
+        return False, "Máy ATM không đủ tiền mặt."
     
-    if amount % 50000 != 0:
-        return "MULTIPLE_ERROR"
-    
-    fee = 1100
-    total_deduction = amount + fee
-    
-    if total_deduction > user_account_balance:
-        return "INSUFFICIENT_FUNDS"
-    
-    if amount > atm_vault_balance:
-        return "ATM_OUT_OF_CASH"
-    
-    return "OK"
+    return True, "Hợp lệ"
 
-def execute_withdrawal(total_deduction, amount_to_dispense):
-
-    global user_account_balance, atm_vault_balance
+def execute_withdrawal(amount):
+    """
+    Thực thi trừ tiền từ tài khoản và kho chứa ATM.
+    :param amount: Số tiền thực rút.
+    """
+    global USER_ACCOUNT_BALANCE, ATM_VAULT_BALANCE
     
-    user_account_balance -= total_deduction
-    atm_vault_balance -= amount_to_dispense
+    total_deduction = amount + WITHDRAWAL_FEE
+    USER_ACCOUNT_BALANCE -= total_deduction
+    ATM_VAULT_BALANCE -= amount
     
-    print("Giao dịch đang xử lý...")
-    print(f"Phí giao dịch: 1,100 VND")
-    print(f"Bạn đã rút thành công {amount_to_dispense:,} VND.")
-    print(f"Số dư tài khoản còn lại: {user_account_balance:,} VND.")
+    print("\n>>> Giao dịch đang xử lý...")
+    print(f"Phí giao dịch: {WITHDRAWAL_FEE:,} VND")
+    print(f"Bạn đã rút: {amount:,} VND.")
+    print(f"Số dư còn lại: {USER_ACCOUNT_BALANCE:,} VND.")
 
 def main():
-
+    """Hàm điều khiển luồng chính của ứng dụng ATM."""
     while True:
-        print(" SMART ATM ".center(50, "="))
-        print("1. Xem số dư")
-        print("2. Nạp tiền")
-        print("3. Rút tiền")
-        print("4. Kết thúc giao dịch")
-        print("="*50)
+        print("\n" + " SMART ATM ".center(50, "="))
+        print("1. Xem số dư\n2. Nạp tiền\n3. Rút tiền\n4. Kết thúc")
+        print("=" * 50)
         
-        try:
-            choice = input("Vui lòng chọn giao dịch (1-4): ")
+        choice = input("Lựa chọn của bạn: ")
+        
+        if choice == '1':
+            display_balances()
             
-            if choice == '1':
-                display_balances()
-            
-            elif choice == '2':
-                try:
-                    amount_str = input("--- NẠP TIỀN ---\nNhập số tiền muốn nạp: ")
-                    amount = int(amount_str)
-                    deposit_money(amount)
-                except ValueError:
-                    print("Lỗi: Vui lòng nhập số nguyên hợp lệ.")
-            
-            elif choice == '3':
-                try:
-                    amount_str = input("--- RÚT TIỀN ---\nNhập số tiền cần rút: ")
-                    amount = int(amount_str)
-                    
-                    status = check_withdrawal_rules(amount)
-                    
-                    if status == "INVALID_AMOUNT" or status == "MULTIPLE_ERROR":
-                        if status == "INVALID_AMOUNT":
-                            print("Số tiền không hợp lệ.")
-                        else:
-                            print("Số tiền rút phải là bội số của 50,000.")
-                    
-                    elif status == "INSUFFICIENT_FUNDS":
-                        print("Giao dịch thất bại: Số dư tài khoản không đủ.")
-                    
-                    elif status == "ATM_OUT_OF_CASH":
-                        print("Giao dịch thất bại: Máy ATM không đủ tiền mặt để phục vụ.")
-                    
-                    elif status == "OK":
-                        fee = 1100
-                        total_deduction = amount + fee
-                        execute_withdrawal(total_deduction, amount)
+        elif choice == '2':
+            try:
+                amt = int(input("Nhập số tiền cần nạp: "))
+                deposit_money(amt)
+            except ValueError:
+                print("Lỗi: Vui lòng nhập số nguyên hợp lệ.")
                 
-                except ValueError:
-                    print("Lỗi: Vui lòng nhập số nguyên hợp lệ.")
-            
-            elif choice == '4':
-                print("Cảm ơn quý khách đã sử dụng dịch vụ!")
-                break
-            
-            else:
-                print("Lựa chọn không hợp lệ, vui lòng nhập lại.")
+        elif choice == '3':
+            try:
+                amt = int(input("Nhập số tiền cần rút: "))
+                is_valid, message = validate_withdrawal(amt)
+                if is_valid:
+                    execute_withdrawal(amt)
+                else:
+                    print(f"Giao dịch thất bại: {message}")
+            except ValueError:
+                print("Lỗi: Vui lòng nhập số nguyên hợp lệ.")
                 
-        except KeyboardInterrupt:
-            print("\nĐã thoát chương trình.")
+        elif choice == '4':
+            print("Cảm ơn quý khách đã sử dụng dịch vụ!")
             break
+        else:
+            print("Lựa chọn không hợp lệ. Vui lòng chọn lại.")
 
 if __name__ == "__main__":
     main()
